@@ -2,25 +2,16 @@
 spotify playlist ID.
 """
 
-# re is for regex pattern matching
-import re
 
-# lets us do stuff with web browsers
-import webbrowser
+import re  # re is for regex pattern matching
+import webbrowser  # lets us do stuff with web browsers
+from pathlib import Path  # Path lets us check file paths
 
-# Path lets us check file paths
-from pathlib import Path
-
-# Connect to URLs and get responses
-import requests
-
-# does the talking to spotify API for us
-import spotipy
+import requests  # Connect to URLs and get responses
+import spotipy  # does the talking to spotify API for us
 
 from priv import client_id, client_secret, my_username
-
-# URL_REGEX has a regex pattern match for extracting (any?) urls from strings
-from url_regex import URL_REGEX
+from url_regex import URL_REGEX  # pattern for extracting urls from strings
 
 tt_playlist_id = "0Bb0r2yj7JrooH2nxxplgM"
 
@@ -114,6 +105,12 @@ def extract_spotify(raw_log):
 
 
 def extract_youtube(raw_log):
+    """Can't be bothered to connect to youtube API as it had a lot of bureaucracy.
+    So instead, this will create youtube 'lists' of 50 songs each (max limit I think)
+    which will pop open in your default browser.
+    There is a handy "Add to..." button in the top right to add them to a playlist
+    one-by-one.
+    """
     # Get all links from the log
     log_tracks = []
     for link in re.findall(URL_REGEX, raw_log):  # filter all hyperlinks
@@ -126,30 +123,39 @@ def extract_youtube(raw_log):
     # Get the "track_id" part of each link without regex!
     cut_links = []
     for link in log_tracks:
-        # This one is not available and was killing us somehow...
+        # This particular one is not available and was killing us for some reason...
         if "O8sWbzGwOv0" in link:
             continue
-        if "v=" in link:  # https://www.youtube.com/watch?v=aBcDeFGH
-            cut_links.append(link.split("v=")[1])
-        if "be/" in link:  # https://youtu.be/aBcDeFGH
-            cut_links.append(link.split("be/")[1])
+        if "v=" in link:  # e.g. https://www.youtube.com/watch?v=aBcDeFGH
+            link = link.split("v=")[1]
+        if "be/" in link:  # e.g. https://youtu.be/aBcDeFGH
+            link = link.split("be/")[1]
+        if "&list" in link:  # Some (one) seemed to have this list thing on the end
+            link = link.split("&list")[0]
+        cut_links.append(link)
 
-    # Make a "watch_videos?"-style list of links
-    video_list = "http://www.youtube.com/watch_videos?video_ids=" + ",".join(cut_links)
+    print(f"Got {len(cut_links)} cleaned links from the extracted links")
 
-    # Connect to youtube and get the short URL link for the list
-    response = requests.get(video_list)
-    playlist_link = response.url.split("list=")[1]
+    # Now we chunk that list into lists of 50 items
+    for group in chunks(cut_links, 50):
 
-    # Turn it into a "playlist" by appending the "list" to this style link
-    playlist_url = (
-        "https://www.youtube.com/playlist?list="
-        + playlist_link
-        + "&disable_polymer=true"
-    )
+        # Make a "watch_videos?"-style list of links
+        video_list = "http://www.youtube.com/watch_videos?video_ids=" + ",".join(group)
 
-    # Pop it open in your web browser
-    webbrowser.open(playlist_url)
+        # Connect to youtube and get the short URL link for the list
+        response = requests.get(video_list)
+        playlist_link = response.url.split("list=")[1]
+
+        # Turn it into a "playlist" by appending the "list" to this style link
+        playlist_url = (
+            "https://www.youtube.com/playlist?list="
+            + playlist_link
+            # gives us old youtube which has the "add list to" button we need
+            + "&disable_polymer=true"
+        )
+
+        # Pop it open in your web browser
+        webbrowser.open(playlist_url)
     print("Finished!")
     return
 
