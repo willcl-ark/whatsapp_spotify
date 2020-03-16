@@ -6,6 +6,7 @@ spotify playlist ID.
 import re  # re is for regex pattern matching
 import webbrowser  # lets us do stuff with web browsers
 from pathlib import Path  # Path lets us check file paths
+import pprint
 
 import requests  # Connect to URLs and get responses
 import spotipy  # does the talking to spotify API for us
@@ -26,7 +27,7 @@ def chunks(_list: list, n: int):
         yield _list[i : i + n]
 
 
-def extract_spotify(raw_log):
+def extract_spotify(raw_log, dry_run):
     # Because I expect to use it for this playlist mainly, have it print out the
     # playlist ID for me in the terminal.
     print(f"TT playlist ID: {tt_playlist_id}")
@@ -45,7 +46,7 @@ def extract_spotify(raw_log):
                 log_tracks.append(link)  # add it to our list
 
     print(f"Got {len(log_tracks)} track IDs from the log file")
-    print(log_tracks)
+    pprint.pprint(log_tracks)
 
     # Setup the spotify API token
     token = spotipy.prompt_for_user_token(
@@ -92,6 +93,11 @@ def extract_spotify(raw_log):
     diff = [x for x in log_tracks if x not in current_playlist_urls]
     print(f"{len(diff)} new tracks to add")
 
+    if dry_run:
+        print("We would have added the following tracks:")
+        pprint.pprint(diff)
+        return
+
     # Add the tracks as required. We chunk them in sub-lists of length 99 and keep
     # adding until we're done
     link_chunks = chunks(diff, 99)
@@ -118,7 +124,7 @@ def extract_youtube(raw_log):
             log_tracks.append(link)  # add it to our list
 
     print(f"Got {len(log_tracks)} track IDs from the log file")
-    print(log_tracks)
+    pprint.pprint(log_tracks)
 
     # Get the "track_id" part of each link without regex!
     cut_links = []
@@ -163,10 +169,22 @@ def extract_youtube(raw_log):
 def main():
     service = input("Parse youtube (y) or spotify (s) links?:\n").lower()
     while True:
-        if service != ("y" or "s"):
+        if service not in ("y", "s"):
             service = input("Please enter using only 'y' or 's':\n")
         else:
             break
+
+    # We can do a dry-run on spotify to see only how many tracks we would have added
+    if service == "s":
+        dry_run = input("Do you want to do a dry run first? (y/n)").lower()
+        while True:
+            if dry_run not in ("y", "n"):
+                dry_run = input(
+                    "Please enter only 'y' or n'. Do you want to do a dry run first?"
+                ).lower()
+            else:
+                dry_run = True if dry_run == "y" else False
+                break
 
     # Get the log file path
     log_file_path = input(
@@ -188,7 +206,7 @@ def main():
         raw_log = logfile.read()
 
     if service == "s":
-        extract_spotify(raw_log)
+        extract_spotify(raw_log, dry_run)
     elif service == "y":
         extract_youtube(raw_log)
     else:
