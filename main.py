@@ -3,10 +3,12 @@ spotify playlist ID.
 """
 
 
+import glob
+import pprint
 import re  # re is for regex pattern matching
+import readline
 import webbrowser  # lets us do stuff with web browsers
 from pathlib import Path  # Path lets us check file paths
-import pprint
 
 import requests  # Connect to URLs and get responses
 import spotipy  # does the talking to spotify API for us
@@ -15,6 +17,17 @@ from priv import client_id, client_secret, my_username
 from url_regex import URL_REGEX  # pattern for extracting urls from strings
 
 tt_playlist_id = "0Bb0r2yj7JrooH2nxxplgM"
+
+
+def complete(text, state):
+    """Complete file paths automatically for us
+    """
+    return (glob.glob(text + "*") + [None])[state]
+
+
+readline.set_completer_delims(" \t\n;")
+readline.parse_and_bind("tab: complete")
+readline.set_completer(complete)
 
 
 def chunks(_list: list, n: int):
