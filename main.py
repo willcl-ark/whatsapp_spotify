@@ -109,7 +109,9 @@ def extract_spotify(raw_log, dry_run):
     if dry_run:
         print("We would have added the following tracks:")
         pprint.pprint(diff)
-        return
+        c = input("Would you like to exit (x) or continue (c)?") or "c"
+        if not c == "c":
+            return
 
     # Add the tracks as required. We chunk them in sub-lists of length 99 and keep
     # adding until we're done
