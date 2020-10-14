@@ -17,7 +17,8 @@ from priv import client_id, client_secret, my_username
 from url_regex import URL_REGEX  # pattern for extracting urls from strings
 
 tt_playlist_id = "0Bb0r2yj7JrooH2nxxplgM"
-
+home = str(Path.home())
+default_path = home + "/Downloads/_chat.txt"
 
 def complete(text, state):
     """Complete file paths automatically for us
@@ -203,9 +204,9 @@ def main():
 
     # Get the log file path
     log_file_path = input(
-        "Paste the full path of the WhatsApp log file "
-        "(.txt part from extracted zip only):\n"
-    )
+        f"Paste the full path of the WhatsApp log file "
+        f"(.txt part from extracted zip only) or press enter to use {default_path}:\n"
+    ) or default_path
     # Test that the log file path actually exists so we can ask again for it before
     # failing
     while True:
